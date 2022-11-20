@@ -1,7 +1,9 @@
 package poll.model;
 
+import com.fasterxml.jackson.annotation.JsonFilter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+@JsonFilter("candidateFilter")
 public class Candidate {
 
     private String scientificName;

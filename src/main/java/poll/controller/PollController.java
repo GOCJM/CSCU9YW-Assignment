@@ -4,8 +4,13 @@
 
 package poll.controller;
 
+import com.fasterxml.jackson.databind.ser.FilterProvider;
+import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
+import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.json.MappingJacksonValue;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
@@ -42,8 +47,26 @@ public class PollController {
     }
 
     @GetMapping(ROOT_PATH)
-    public List<Candidate> getAllWelcomes() {
-        return pollService.getAllCandidates();
+    public MappingJacksonValue getAllCandidates(Authentication authentication) {
+        // Change the filter to apply voteCount if not admin otherwise none!
+//        if (auth == null) {
+//            HttpHeaders headers = new HttpHeaders();
+//            headers.set(HttpHeaders.WWW_AUTHENTICATE, "Basic");
+//            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED).getResponseHeaders();
+//        }
+
+        String filter = "voteCount";
+        if (authentication != null && authentication.isAuthenticated()) {
+            filter = null;
+        }
+        SimpleBeanPropertyFilter simpleBeanPropertyFilter = SimpleBeanPropertyFilter.serializeAllExcept(filter);
+        FilterProvider filterProvider = new SimpleFilterProvider().addFilter("candidateFilter", simpleBeanPropertyFilter);
+
+        List<Candidate> candidateList = pollService.getAllCandidates();
+        MappingJacksonValue mappingJacksonValue = new MappingJacksonValue(candidateList);
+        mappingJacksonValue.setFilters(filterProvider);
+
+        return mappingJacksonValue;
     }
 
     @GetMapping(VOTE_PATH + "/{membershipId}")
