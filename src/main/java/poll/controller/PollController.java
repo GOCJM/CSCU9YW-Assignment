@@ -29,6 +29,7 @@ import java.util.Objects;
 public class PollController {
 
     private final String ROOT_PATH = "/birds";
+    private final String ROOT_PATH_UNRESTRICTED = ROOT_PATH + "-enriched";
     private final String VOTE_PATH = ROOT_PATH + "/vote";
     private final String ADD_BIRD_PATH = ROOT_PATH + "/add";
     private final String REMOVE_BIRD_PATH = ROOT_PATH + "/remove";
@@ -47,18 +48,25 @@ public class PollController {
     }
 
     @GetMapping(ROOT_PATH)
+    public MappingJacksonValue getAllCandidates() {
+        // Change the filter to apply voteCount if not admin otherwise none!
+        // If a normal member is making the request revoke voteCount attribute, otherwise show all attributes.
+        String filter = "voteCount";
+        return getMappingJacksonValue(filter);
+    }
+
+    @GetMapping(ROOT_PATH_UNRESTRICTED)
     public MappingJacksonValue getAllCandidates(Authentication authentication) {
         // Change the filter to apply voteCount if not admin otherwise none!
-//        if (auth == null) {
-//            HttpHeaders headers = new HttpHeaders();
-//            headers.set(HttpHeaders.WWW_AUTHENTICATE, "Basic");
-//            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED).getResponseHeaders();
-//        }
-
+        // If a normal member is making the request revoke voteCount attribute, otherwise show all attributes.
         String filter = "voteCount";
         if (authentication != null && authentication.isAuthenticated()) {
             filter = null;
         }
+        return getMappingJacksonValue(filter);
+    }
+
+    private MappingJacksonValue getMappingJacksonValue(String filter) {
         SimpleBeanPropertyFilter simpleBeanPropertyFilter = SimpleBeanPropertyFilter.serializeAllExcept(filter);
         FilterProvider filterProvider = new SimpleFilterProvider().addFilter("candidateFilter", simpleBeanPropertyFilter);
 
@@ -70,7 +78,7 @@ public class PollController {
     }
 
     @GetMapping(VOTE_PATH + "/{membershipId}")
-    public Candidate getVote(@PathVariable String membershipId) {
+    public MappingJacksonValue getVote(@PathVariable String membershipId) {
         // Guard Clauses
         if (!isStringValid(membershipId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, Error.INVALID_MEMBER.toString());
@@ -85,7 +93,12 @@ public class PollController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, Error.NO_CANDIDATE_VOTE.toString());
         }
 
-        return candidate;
+        SimpleBeanPropertyFilter simpleBeanPropertyFilter = SimpleBeanPropertyFilter.serializeAllExcept("voteCount");
+        FilterProvider filterProvider = new SimpleFilterProvider().addFilter("candidateFilter", simpleBeanPropertyFilter);
+        MappingJacksonValue mappingJacksonValue = new MappingJacksonValue(candidate);
+        mappingJacksonValue.setFilters(filterProvider);
+
+        return mappingJacksonValue;
     }
 
     @PutMapping(VOTE_PATH)

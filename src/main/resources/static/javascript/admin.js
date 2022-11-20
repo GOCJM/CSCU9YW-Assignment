@@ -1,6 +1,6 @@
 async function tallyVotes() {
     const output = document.getElementById("talliedVotes");
-    const url = "http://localhost:8080/birds";
+    const url = "http://localhost:8080/birds-enriched";
 
     try {
         const response = await fetch(url, {
