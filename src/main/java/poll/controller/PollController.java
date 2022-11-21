@@ -7,22 +7,18 @@ package poll.controller;
 import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
-import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.MappingJacksonValue;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
-
 import poll.exception.Error;
 import poll.model.Candidate;
 import poll.model.Member;
-import poll.service.*;
+import poll.service.PollService;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 @RestController
 @CrossOrigin
@@ -36,7 +32,7 @@ public class PollController {
     private final String POLL_PATH = "/poll";
 
     // The PollController depends on the PollService, so it needs to keep a reference to it.
-    private PollService pollService;
+    private final PollService pollService;
 
     // The fact that the constructor for the PollController requires a
     // WelcomService argument tells Spring to auto-configure a PollService
@@ -67,16 +63,6 @@ public class PollController {
         return getMappingJacksonValue(filter, pollService.getAllCandidates());
     }
 
-    private MappingJacksonValue getMappingJacksonValue(String filter, Object data) {
-        SimpleBeanPropertyFilter simpleBeanPropertyFilter = SimpleBeanPropertyFilter.serializeAllExcept(filter);
-        FilterProvider filterProvider = new SimpleFilterProvider().addFilter("candidateFilter", simpleBeanPropertyFilter);
-
-        MappingJacksonValue mappingJacksonValue = new MappingJacksonValue(data);
-        mappingJacksonValue.setFilters(filterProvider);
-
-        return mappingJacksonValue;
-    }
-
     @PostMapping(POLL_PATH)
     public ResponseEntity<Void> setPollStatus(@RequestBody boolean status) {
         pollService.setPollOpen(status);
@@ -87,12 +73,7 @@ public class PollController {
     @GetMapping(VOTE_PATH + "/{membershipId}")
     public MappingJacksonValue getVote(@PathVariable String membershipId) {
         // Guard Clauses
-        if (!isStringValid(membershipId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, Error.INVALID_MEMBER.toString());
-        }
-        if (!pollService.hasMember(membershipId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, Error.MEMBER_NON_EXISTENT.toString());
-        }
+        validateMember(pollService.getMember(membershipId), false);
 
         Candidate candidate = pollService.getMember(membershipId).getCandidateVotedFor();
 
@@ -110,17 +91,9 @@ public class PollController {
         Member member = signedVote.values().stream().findFirst().orElse(null);
 
         // Guard Clauses
-        if (!isStringValid(commonName)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, Error.INVALID_CANDIDATE.toString());
-        }
-        if (member == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, Error.INVALID_MEMBER.toString());
-        }
+        validateMember(member, true);
         if (!pollService.hasCandidate(commonName)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, Error.CANDIDATE_NON_EXISTENT.toString());
-        }
-        if (!pollService.hasMember(member.getMembershipId())) {
-            pollService.addMember(member);
         }
 
         Member voter = pollService.getMember(member.getMembershipId());
@@ -138,13 +111,7 @@ public class PollController {
     @DeleteMapping(VOTE_PATH)
     public ResponseEntity<Void> retractVote(@RequestBody String membershipId) {
         // Guard Clauses
-        if (!isStringValid(membershipId)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, Error.INVALID_MEMBER.toString());
-        }
-        if (!pollService.hasMember(membershipId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, Error.MEMBER_NON_EXISTENT.toString());
-        }
-
+        validateMember(pollService.getMember(membershipId), false);
         Member voter = pollService.getMember(membershipId);
         Candidate lastVote = voter.getCandidateVotedFor();
 
@@ -181,47 +148,40 @@ public class PollController {
         return string != null && !string.trim().isEmpty();
     }
 
-//    @PostMapping(ROOT_PATH)
-//    public ResponseEntity<Void> addWelcome(@RequestBody Poll newPoll) {
-//        if (ws.hasWelcome(newPoll.getLang())) {
-//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-//        }
-//
-//        ws.addWelcome(newPoll);
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.set("Location",ROOT_PATH + "/" + newPoll.getLang());
-//
-//        return new ResponseEntity<>(headers, HttpStatus.CREATED);
-//    }
-//
-//    @GetMapping(ROOT_PATH + "/{lang}")
-//    public Poll getWelcome(@PathVariable String lang, @RequestParam(required=false) String name) {
-//        Poll poll = ws.getWelcome(lang, name);
-//        if (poll == null) {
-//            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-//        }
-//        return poll;
-//    }
-//
-//    @PutMapping(ROOT_PATH + "/{lang}")
-//    public ResponseEntity<Void> updateWelcome(@RequestBody Poll newPoll, @PathVariable String lang) {
-//        if (!ws.hasWelcome(lang)){
-//            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-//        }
-//        if (!Objects.equals(lang, newPoll.getLang())) {
-//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-//        }
-//        ws.addWelcome(newPoll);
-//        return new ResponseEntity<>(HttpStatus.ACCEPTED);
-//    }
-//
-//    @DeleteMapping(ROOT_PATH + "/{lang}")
-//    public ResponseEntity<Void> removeWelcome(@PathVariable String lang) {
-//        if (!ws.hasWelcome(lang)){
-//            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-//        }
-//        ws.removeWelcome(lang);
-//        return new ResponseEntity<>(HttpStatus.OK);
-//    }
+    /**
+     * This method will validate a given member and throw an error if appropriate.
+     *
+     * @param member
+     * @param addMember
+     */
+    private void validateMember(Member member, boolean addMember) {
+        if (!pollService.isPollOpen()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, Error.POLL_CLOSED.toString());
+        }
+        if (member == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, Error.MEMBER_NON_EXISTENT.toString());
+        }
+        if (!isStringValid(member.getMembershipId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, Error.INVALID_MEMBER.toString());
+        }
+        if (!pollService.hasMember(member.getMembershipId())) {
+            if (addMember) {
+                pollService.addMember(member);
+                return;
+            }
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, Error.MEMBER_NON_EXISTENT.toString());
+        }
+    }
+
+
+    private MappingJacksonValue getMappingJacksonValue(String filter, Object data) {
+        SimpleBeanPropertyFilter simpleBeanPropertyFilter = SimpleBeanPropertyFilter.serializeAllExcept(filter);
+        FilterProvider filterProvider = new SimpleFilterProvider().addFilter("candidateFilter", simpleBeanPropertyFilter);
+
+        MappingJacksonValue mappingJacksonValue = new MappingJacksonValue(data);
+        mappingJacksonValue.setFilters(filterProvider);
+
+        return mappingJacksonValue;
+    }
 
 }

@@ -159,8 +159,8 @@
                 body: JSON.stringify(payload)
             })
             let message = await response.text();
-            if (response.status === 304) {
-                message = "You have already voted for this candidate!";
+            if (response.status !== 202) {
+                message = (message && JSON.parse(message).message) || "This member has already voted for this candidate.";
             }
             output.innerText = `Status ${response.status}\n${message}`;
         } catch (error) {
@@ -186,13 +186,8 @@
                 body: payload
             })
             let message = await response.text();
-            switch (response.status) {
-                case 304:
-                    message = "This member has not registered a vote!";
-                    break;
-                case 404:
-                    message = JSON.parse(message).message;
-                    break;
+            if (response.status !== 204) {
+                message = (message && JSON.parse(message).message) || "This member has no vote to retract.";
             }
             output.innerText = `Status ${response.status}\n${message}`;
         } catch (error) {
@@ -214,15 +209,11 @@
 
         try {
             const response = await fetch(url);
-            let data;
-            if (response.ok) {
-                data = await response.json();
+            let message = "No response message...";
+            if (response.status !== 200) {
+                message = (message && JSON.parse(await response.text()).message);
             } else {
-                data = JSON.parse(await response.text());
-            }
-            let message = JSON.stringify(data, null, 4);
-            if (response.status === 404) {
-                message = data.message;
+                message = JSON.stringify(await response.json(), null, 4);
             }
             output.innerText = `Status ${response.status}\n${message}`;
         } catch (error) {
