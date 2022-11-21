@@ -3,9 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <title>Admin Client</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
 </head>
 <body>
 <h1>Admin Client for Polling Service</h1>
+<div id="pollControl">
+    <button type="button" onclick="openPoll()">Open Poll</button>
+    <button type="button" onclick="closePoll()">Close Poll</button>
+    <h3 id="pollStatus"></h3>
+</div>
 <div id="tallyVotes">
   <button type="button" onclick="tallyVotes()">Tally Votes</button>
   <pre id="talliedVotes" style="white-space: pre-wrap"></pre>

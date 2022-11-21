@@ -21,6 +21,8 @@ public class PollServiceImpl implements PollService {
     // in the database being mutated accidentally, we must always copy objects
     // before insertion and retrieval.
 
+    private boolean isPollOpen = false;
+
     // Key -> commonName, value -> Candidate
     private final Map<String, Candidate> candidateDb;
     // Key -> membershipId, value -> Member
@@ -134,14 +136,6 @@ public class PollServiceImpl implements PollService {
      */
     @Override
     public Integer getCandidateCount(String commonName) {
-//        // Guard clauses.
-//        if (!isStringValid(commonName)) {
-//            throw new RuntimeException(Error.INVALID_CANDIDATE.toString());
-//        }
-//        if (!hasCandidate(commonName)) {
-//            throw new RuntimeException(Error.CANDIDATE_NON_EXISTENT.toString());
-//        }
-
         return candidateDb.get(commonName).getVoteCount();
     }
 
@@ -177,4 +171,11 @@ public class PollServiceImpl implements PollService {
     }
 
 
+    public boolean isPollOpen() {
+        return isPollOpen;
+    }
+
+    public void setPollOpen(boolean pollOpen) {
+        isPollOpen = pollOpen;
+    }
 }

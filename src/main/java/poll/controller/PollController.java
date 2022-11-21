@@ -33,6 +33,7 @@ public class PollController {
     private final String VOTE_PATH = ROOT_PATH + "/vote";
     private final String ADD_BIRD_PATH = ROOT_PATH + "/add";
     private final String REMOVE_BIRD_PATH = ROOT_PATH + "/remove";
+    private final String POLL_PATH = "/poll";
 
     // The PollController depends on the PollService, so it needs to keep a reference to it.
     private PollService pollService;
@@ -74,6 +75,13 @@ public class PollController {
         mappingJacksonValue.setFilters(filterProvider);
 
         return mappingJacksonValue;
+    }
+
+    @PostMapping(POLL_PATH)
+    public ResponseEntity<Void> setPollStatus(@RequestBody boolean status) {
+        pollService.setPollOpen(status);
+
+        return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 
     @GetMapping(VOTE_PATH + "/{membershipId}")

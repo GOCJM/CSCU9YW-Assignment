@@ -40,4 +40,8 @@ public interface PollService {
     boolean hasMember(String membershipId);
 
     Member getMember(String membershipId);
+
+    boolean isPollOpen();
+
+    void setPollOpen(boolean pollOpen);
 }
