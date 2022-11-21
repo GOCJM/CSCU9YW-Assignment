@@ -52,7 +52,7 @@ public class PollController {
         // Change the filter to apply voteCount if not admin otherwise none!
         // If a normal member is making the request revoke voteCount attribute, otherwise show all attributes.
         String filter = "voteCount";
-        return getMappingJacksonValue(filter);
+        return getMappingJacksonValue(filter, pollService.getAllCandidates());
     }
 
     @GetMapping(ROOT_PATH_UNRESTRICTED)
@@ -63,15 +63,14 @@ public class PollController {
         if (authentication != null && authentication.isAuthenticated()) {
             filter = null;
         }
-        return getMappingJacksonValue(filter);
+        return getMappingJacksonValue(filter, pollService.getAllCandidates());
     }
 
-    private MappingJacksonValue getMappingJacksonValue(String filter) {
+    private MappingJacksonValue getMappingJacksonValue(String filter, Object data) {
         SimpleBeanPropertyFilter simpleBeanPropertyFilter = SimpleBeanPropertyFilter.serializeAllExcept(filter);
         FilterProvider filterProvider = new SimpleFilterProvider().addFilter("candidateFilter", simpleBeanPropertyFilter);
 
-        List<Candidate> candidateList = pollService.getAllCandidates();
-        MappingJacksonValue mappingJacksonValue = new MappingJacksonValue(candidateList);
+        MappingJacksonValue mappingJacksonValue = new MappingJacksonValue(data);
         mappingJacksonValue.setFilters(filterProvider);
 
         return mappingJacksonValue;
@@ -93,12 +92,7 @@ public class PollController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, Error.NO_CANDIDATE_VOTE.toString());
         }
 
-        SimpleBeanPropertyFilter simpleBeanPropertyFilter = SimpleBeanPropertyFilter.serializeAllExcept("voteCount");
-        FilterProvider filterProvider = new SimpleFilterProvider().addFilter("candidateFilter", simpleBeanPropertyFilter);
-        MappingJacksonValue mappingJacksonValue = new MappingJacksonValue(candidate);
-        mappingJacksonValue.setFilters(filterProvider);
-
-        return mappingJacksonValue;
+        return getMappingJacksonValue("voteCount", candidate);
     }
 
     @PutMapping(VOTE_PATH)

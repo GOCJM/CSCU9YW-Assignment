@@ -186,8 +186,13 @@
                 body: payload
             })
             let message = await response.text();
-            if (response.status === 304) {
-                message = "This member has not registered a vote!";
+            switch (response.status) {
+                case 304:
+                    message = "This member has not registered a vote!";
+                    break;
+                case 404:
+                    message = JSON.parse(message).message;
+                    break;
             }
             output.innerText = `Status ${response.status}\n${message}`;
         } catch (error) {

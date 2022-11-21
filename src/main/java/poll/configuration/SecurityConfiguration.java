@@ -16,9 +16,6 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
     @Override
     public void configure(HttpSecurity httpSecurity) throws Exception {
-//        httpSecurity.authorizeRequests().anyRequest().authenticated()
-//                .and().formLogin().and().httpBasic();
-//        httpSecurity.authorizeRequests().antMatchers("/","/birds-enriched").authenticated().anyRequest().permitAll();
         httpSecurity.httpBasic().and().authorizeRequests().anyRequest().authenticated().and().formLogin();
     }
 
