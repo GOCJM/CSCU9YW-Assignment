@@ -17,5 +17,6 @@ public class WebConfiguration implements WebMvcConfigurer {
         registry.addViewController("/").setViewName("admin-client.html");
         registry.addViewController("/voter").setViewName("voter-client.html");
         registry.addViewController("/static/javascript/admin.js").setViewName("../static/javascript/admin.js");
+        registry.addViewController("/static/javascript/voter.js").setViewName("../static/javascript/voter.js");
     }
 }
