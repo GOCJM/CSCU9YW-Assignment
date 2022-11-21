@@ -10,9 +10,10 @@ public class Member {
 
     /**
      * This constructor will create a member with all the attributes.
-     * @param membershipId The membership identifier for the specified member.
-     * @param name The full name of the specified member.
-     * @param age The current age of the specified member.
+     *
+     * @param membershipId     The membership identifier for the specified member.
+     * @param name             The full name of the specified member.
+     * @param age              The current age of the specified member.
      * @param regionOfScotland The region of Scotland that the member resides.
      */
     public Member(String membershipId, String name, int age, String regionOfScotland) {
@@ -25,8 +26,9 @@ public class Member {
 
     /**
      * This constructor will create a member with the minimum attributes.
+     *
      * @param membershipId The membership identifier for the specified member.
-     * @param name The full name of the specified member.
+     * @param name         The full name of the specified member.
      */
     public Member(String membershipId, String name) {
         this.membershipId = membershipId;
@@ -88,12 +90,6 @@ public class Member {
 
     @Override
     public String toString() {
-        return "Member{" +
-                "membershipId='" + membershipId + '\'' +
-                ", name='" + name + '\'' +
-                ", age=" + age +
-                ", regionOfScotland='" + regionOfScotland + '\'' +
-                ", candidateVotedFor=" + candidateVotedFor +
-                '}';
+        return "Member{" + "membershipId='" + membershipId + '\'' + ", name='" + name + '\'' + ", age=" + age + ", regionOfScotland='" + regionOfScotland + '\'' + ", candidateVotedFor=" + candidateVotedFor + '}';
     }
 }

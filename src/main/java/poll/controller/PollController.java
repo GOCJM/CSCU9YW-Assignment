@@ -24,26 +24,30 @@ import java.util.Map;
 @CrossOrigin
 public class PollController {
 
+    // Endpoints
     private final String ROOT_PATH = "/birds";
     private final String ROOT_PATH_UNRESTRICTED = ROOT_PATH + "-enriched";
     private final String VOTE_PATH = ROOT_PATH + "/vote";
-    private final String ADD_BIRD_PATH = ROOT_PATH + "/add";
     private final String REMOVE_BIRD_PATH = ROOT_PATH + "/remove";
     private final String POLL_PATH = "/poll";
 
     // The PollController depends on the PollService, so it needs to keep a reference to it.
     private final PollService pollService;
 
-    // The fact that the constructor for the PollController requires a
-    // WelcomService argument tells Spring to auto-configure a PollService
-    // and pass it to the constructor. This is called "Dependency Injection",
-    // and it (a) saves boilerplate code, and (b) makes it easy to swap
-    // components. (We can change the PollService implementation without
-    // changing any code in the rest of the system.)
+    /**
+     * This constructor will set up the PollService that this controller will manipulate.
+     *
+     * @param pollService The Poll Service object that will compute requests.
+     */
     public PollController(PollService pollService) {
         this.pollService = pollService;
     }
 
+    /**
+     * This method will get all the candidates with the voteCount attribute redacted.
+     *
+     * @return The list of candidates without the attribute voteCount.
+     */
     @GetMapping(ROOT_PATH)
     public MappingJacksonValue getAllCandidates() {
         // Change the filter to apply voteCount if not admin otherwise none!
@@ -52,9 +56,15 @@ public class PollController {
         return getMappingJacksonValue(filter, pollService.getAllCandidates());
     }
 
+    /**
+     * This method will get all the candidates fully populated if authenticated, otherwise it will provide
+     * a redacted version without the voteCount attribute.
+     *
+     * @param authentication The authentication object to verify an administrator.
+     * @return The list of all candidates, or all redacted candidates if not authenticated.
+     */
     @GetMapping(ROOT_PATH_UNRESTRICTED)
     public MappingJacksonValue getAllCandidates(Authentication authentication) {
-        // Change the filter to apply voteCount if not admin otherwise none!
         // If a normal member is making the request revoke voteCount attribute, otherwise show all attributes.
         String filter = "voteCount";
         if (authentication != null && authentication.isAuthenticated()) {
@@ -63,6 +73,12 @@ public class PollController {
         return getMappingJacksonValue(filter, pollService.getAllCandidates());
     }
 
+    /**
+     * This method will set the status of the poll.
+     *
+     * @param status The boolean value, indicating if the poll is open or not.
+     * @return The response object to indicate the status of the request.
+     */
     @PostMapping(POLL_PATH)
     public ResponseEntity<Void> setPollStatus(@RequestBody boolean status) {
         pollService.setPollOpen(status);
@@ -70,13 +86,18 @@ public class PollController {
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 
+    /**
+     * This method will get the vote for a specified membershipId.
+     *
+     * @param membershipId The identifier of the member to get the vote for.
+     * @return The redacted version (no voteCount attribute) of the associated candidate.
+     */
     @GetMapping(VOTE_PATH + "/{membershipId}")
     public MappingJacksonValue getVote(@PathVariable String membershipId) {
         // Guard Clauses
         validateMember(pollService.getMember(membershipId), false);
 
         Candidate candidate = pollService.getMember(membershipId).getCandidateVotedFor();
-
         if (candidate == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, Error.NO_CANDIDATE_VOTE.toString());
         }
@@ -84,6 +105,12 @@ public class PollController {
         return getMappingJacksonValue("voteCount", candidate);
     }
 
+    /**
+     * This method will store a vote for a specified member and candidate in the poll service.
+     *
+     * @param signedVote The JSON value with the Candidate commonName as the key, and the Member object as the value.
+     * @return The response object to indicate the status of the request.
+     */
     @PutMapping(VOTE_PATH)
     public ResponseEntity<Void> makeVote(@RequestBody Map<String, Member> signedVote) {
         // Separate the data into parsable variables.
@@ -96,10 +123,12 @@ public class PollController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, Error.CANDIDATE_NON_EXISTENT.toString());
         }
 
+        // Gather objects
         Member voter = pollService.getMember(member.getMembershipId());
         Candidate lastVote = voter.getCandidateVotedFor();
         Candidate newVote = pollService.getCandidate(commonName);
 
+        // If the votes are the same, don't modify.
         if (newVote.equals(lastVote)) {
             return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
         }
@@ -108,13 +137,22 @@ public class PollController {
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 
+    /**
+     * This method will retract a vote for a specified member.
+     *
+     * @param membershipId The identifier of the member to retract the vote for.
+     * @return The response object to indicate the status of the request.
+     */
     @DeleteMapping(VOTE_PATH)
     public ResponseEntity<Void> retractVote(@RequestBody String membershipId) {
         // Guard Clauses
         validateMember(pollService.getMember(membershipId), false);
+
+        // Gather objects
         Member voter = pollService.getMember(membershipId);
         Candidate lastVote = voter.getCandidateVotedFor();
 
+        // If there is no vote to retract, don't modify.
         if (lastVote == null) {
             return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
         }
@@ -123,6 +161,12 @@ public class PollController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+    /**
+     * This method will remove a candidate from the poll service.
+     *
+     * @param commonName The common name of the Candidate object to remove.
+     * @return The response object to indicate the status of the request.
+     */
     @DeleteMapping(REMOVE_BIRD_PATH)
     public ResponseEntity<Void> removeCandidate(@RequestBody String commonName) {
         // Guard Clauses
@@ -149,10 +193,12 @@ public class PollController {
     }
 
     /**
-     * This method will validate a given member and throw an error if appropriate.
+     * This method will validate a given member and throw an error if appropriate. No need to return anything here,
+     * as if it isn't valid, a ResponseStatusException will be thrown.
      *
-     * @param member
-     * @param addMember
+     * @param member The member to validate.
+     * @param addMember If the member is valid, but is not stored in the database, this boolean value determines if it
+     *                  should be added into the poll service.
      */
     private void validateMember(Member member, boolean addMember) {
         if (!pollService.isPollOpen()) {
@@ -173,7 +219,13 @@ public class PollController {
         }
     }
 
-
+    /**
+     * This method will filter out a specified filter from a given data object.
+     *
+     * @param filter The filter attribute to apply.
+     * @param data The data to be filtered.
+     * @return The filtered object as a MappingJacksonValue.
+     */
     private MappingJacksonValue getMappingJacksonValue(String filter, Object data) {
         SimpleBeanPropertyFilter simpleBeanPropertyFilter = SimpleBeanPropertyFilter.serializeAllExcept(filter);
         FilterProvider filterProvider = new SimpleFilterProvider().addFilter("candidateFilter", simpleBeanPropertyFilter);

@@ -1,7 +1,6 @@
 package poll.model;
 
 import com.fasterxml.jackson.annotation.JsonFilter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @JsonFilter("candidateFilter")
 public class Candidate {
@@ -13,9 +12,10 @@ public class Candidate {
 
     /**
      * This constructor will create a candidate for the vote.
+     *
      * @param scientificName The scientific name of the animal.
-     * @param commonName The common name of the animal.
-     * @param description A brief description of the animal.
+     * @param commonName     The common name of the animal.
+     * @param description    A brief description of the animal.
      */
     public Candidate(String scientificName, String commonName, String description) {
         this.scientificName = scientificName;
@@ -28,6 +28,7 @@ public class Candidate {
      * This constructor will create a candidate for the vote.
      * It will be useful to copy candidate objects to ensure
      * immutability within the database.
+     *
      * @param candidate The candidate object describing the animal.
      */
     public Candidate(Candidate candidate) {
@@ -71,9 +72,6 @@ public class Candidate {
         this.description = description;
     }
 
-    // This annotation will ensure that members will not see current vote count for the candidate,
-    // when the candidates are listed.
-//    @JsonIgnore
     public int getVoteCount() {
         return voteCount;
     }

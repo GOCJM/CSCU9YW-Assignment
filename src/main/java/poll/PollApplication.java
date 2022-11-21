@@ -14,6 +14,7 @@ import poll.service.PollService;
 @SpringBootApplication
 public class PollApplication {
 
+    // The details of the candidates for the poll.
     private static final String[][] candidateDetails = {
             {
                     "Pandion haliaetus",
@@ -45,6 +46,7 @@ public class PollApplication {
     @Bean
     public CommandLineRunner initDB(PollService pollService) {
         return (args) -> {
+            // Add all the candidates to the poll service.
             for (String[] candidate : candidateDetails) {
                 String scientificName = candidate[0];
                 String commonName = candidate[1];

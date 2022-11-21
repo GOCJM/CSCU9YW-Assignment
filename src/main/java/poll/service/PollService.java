@@ -11,11 +11,10 @@ public interface PollService {
 
     // CANDIDATE SECTION
 
-    void retractVote(Member voter, Candidate lastVote);
-
-    // Adds a candidate to the database, or overwrites an existing one.
+    // Adds a candidate to the database.
     void addCandidate(Candidate candidate);
 
+    // Gets a candidate from the database.
     Candidate getCandidate(String commonName);
 
     // Returns a candidate count.
@@ -35,13 +34,21 @@ public interface PollService {
 
     // MEMBER SECTION
 
+    // Adds a member to the database.
     void addMember(Member member);
 
+    // Checks if a member exists in the database.
     boolean hasMember(String membershipId);
 
+    // Removes a vote from a candidate and member.
+    void retractVote(Member voter, Candidate lastVote);
+
+    // Gets a member from the database.
     Member getMember(String membershipId);
 
+    // Checks if the poll is currently open.
     boolean isPollOpen();
 
+    // Sets the status of the poll's openness.
     void setPollOpen(boolean pollOpen);
 }
